@@ -14,6 +14,9 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import java.util.HashMap;
+import java.util.Map;
+
 
 /**
  * Global exception handler for all controllers in the application.
@@ -26,7 +29,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
  * - Executes in order: specific exception types first, then generic Exception handlers
  * - Can be combined with @Order annotation to control handler precedence
  * - Alternative to handling exceptions locally in individual controllers
- *
+ * <p>
  * Execution flow:
  * 1. Exception thrown in any controller
  * 2. Spring looks for matching @ExceptionHandler method
@@ -56,9 +59,9 @@ public class ExceptionHandlerController {
         logger.warn("Handler employee not found");
 
         ErrorResponse error = new ErrorResponse(
-            HttpStatus.NOT_FOUND.value(),
-            ex.getMessage(),
-            System.currentTimeMillis()
+                HttpStatus.NOT_FOUND.value(),
+                ex.getMessage(),
+                System.currentTimeMillis()
         );
 
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
@@ -95,9 +98,9 @@ public class ExceptionHandlerController {
         logger.warn("Handling not allowed argument passed by the user");
 
         ErrorResponse error = new ErrorResponse(
-            HttpStatus.BAD_REQUEST.value(),
-            ex.getMessage(),
-            System.currentTimeMillis()
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage(),
+                System.currentTimeMillis()
         );
 
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
@@ -114,5 +117,24 @@ public class ExceptionHandlerController {
         );
 
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+
+        ex.getBindingResult()
+                .getFieldErrors()
+                .forEach(error ->
+                        errors.put(error.getField(), error.getDefaultMessage())
+                );
+
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.NOT_ACCEPTABLE.value(),
+                errors.toString(),
+                System.currentTimeMillis()
+        );
+
+        return new ResponseEntity<>(error, HttpStatus.NOT_ACCEPTABLE);
     }
 }
